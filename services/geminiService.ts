@@ -1,0 +1,105 @@
+
+import OpenAI from "openai";
+import { GeminiResponse } from "../types";
+
+const SYSTEM_INSTRUCTION = `你是一个高速OCR助手，专门识别物流标签上的编码。
+规则：
+1. 忽略所有二维码、条形码图形、扫码文字。
+2. 仅提取：SN(序列号)、SKU、MAC。
+3. 如果图中找不到这些编码，所有字段返回 null。
+4. 严禁输出任何解释性文字。
+5. 必须返回有效的JSON格式，包含以下字段：sn, sku, mac, other_codes, confidence。`;
+
+export const recognizeLabel = async (base64Image: string): Promise<GeminiResponse> => {
+  if (!base64Image || base64Image.length < 100) {
+    throw new Error("图像无效");
+  }
+
+  // 火山引擎豆包 API 配置
+  const apiKey = process.env.ARK_API_KEY || process.env.API_KEY;
+  const apiBase = process.env.ARK_API_BASE || "https://ark.cn-beijing.volces.com/api/v3";
+  const modelName = process.env.ARK_MODEL || "Doubao-Seed-1.6-flash";
+
+  if (!apiKey) {
+    throw new Error("未配置 ARK_API_KEY 环境变量");
+  }
+
+  // 初始化 OpenAI 兼容客户端（火山引擎豆包使用 OpenAI 兼容接口）
+  const client = new OpenAI({
+    baseURL: apiBase,
+    apiKey: apiKey,
+  });
+
+  try {
+    // 构建图片 base64 URL
+    const imageUrl = `data:image/jpeg;base64,${base64Image}`;
+
+    // 调用豆包 API
+    const response = await client.chat.completions.create({
+      model: modelName,
+      messages: [
+        {
+          role: "system",
+          content: SYSTEM_INSTRUCTION
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: imageUrl
+              }
+            },
+            {
+              type: "text",
+              text: "提取编码，返回JSON格式：{\"sn\": \"序列号或null\", \"sku\": \"SKU或null\", \"mac\": \"MAC地址或null\", \"other_codes\": [{\"label\": \"标签名\", \"value\": \"值\"}], \"confidence\": 0.0-1.0之间的数字}。"
+            }
+          ]
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 2000
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("识别无结果");
+    }
+
+    // 解析 JSON 响应
+    let result: GeminiResponse;
+    try {
+      result = JSON.parse(content.trim()) as GeminiResponse;
+    } catch (parseError) {
+      // 如果直接解析失败，尝试从文本中提取 JSON
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0]) as GeminiResponse;
+      } else {
+        throw new Error("无法解析识别结果");
+      }
+    }
+
+    // 确保返回的数据结构完整
+    return {
+      sn: result.sn ?? null,
+      sku: result.sku ?? null,
+      mac: result.mac ?? null,
+      other_codes: result.other_codes ?? [],
+      confidence: result.confidence ?? 0.8
+    };
+  } catch (error: any) {
+    console.error("豆包 API Error:", error);
+    if (error?.message?.includes("400") || error?.message?.includes("INVALID_ARGUMENT")) {
+      throw new Error("图像无法解析，请确保光线充足且已对焦");
+    }
+    if (error?.message?.includes("429") || error?.message?.includes("rate limit")) {
+      throw new Error("请求过于频繁，请稍后再试");
+    }
+    if (error?.message?.includes("timeout") || error?.message?.includes("deadline")) {
+      throw new Error("识别超时，请检查网络");
+    }
+    throw new Error(error?.message || "识别服务繁忙，请稍后再试");
+  }
+};
