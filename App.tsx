@@ -163,8 +163,8 @@ const App: React.FC = () => {
       {toast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-[85%] max-w-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-xl ${toast.type === 'error' ? 'bg-red-500 text-white border-red-400' :
-              toast.type === 'warning' ? 'bg-amber-500 text-white border-amber-400' :
-                'bg-blue-600/90 text-white border-blue-400/30'
+            toast.type === 'warning' ? 'bg-amber-500 text-white border-amber-400' :
+              'bg-blue-600/90 text-white border-blue-400/30'
             }`}>
             {toast.type === 'error' ? <XCircle size={18} /> :
               toast.type === 'warning' ? <Bell size={18} /> :
@@ -207,49 +207,45 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 顶部导航 */}
-      <header className="bg-white/70 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-            <Camera className="text-white" size={20} />
-          </div>
-          <div>
-            <h1 className="text-base font-black text-gray-900 leading-none mb-1">标签智能扫描</h1>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Doubao Flash Ready</p>
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={resetBatch}
-          className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-500 active:rotate-180 transition-all duration-700"
-        >
-          <RefreshCcw size={18} />
-        </button>
-      </header>
+      {/* 主视图区域 - Flex Column Layout */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden pb-safe">
 
-      {/* 主视图区域 */}
-      <main className="flex-1 overflow-y-auto pb-32">
-        <div className="max-w-md mx-auto">
+        {/* 固定扫描区域 */}
+        <div className="shrink-0 z-10 bg-black relative">
           <Scanner
             ref={scannerRef}
             onCapture={handleCapture}
             isProcessing={isProcessing}
             isActive={isScanningActive}
           />
+          <button
+            onClick={resetBatch}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white bg-black/20 backdrop-blur-md rounded-full active:rotate-180 transition-all z-20"
+          >
+            <RefreshCcw size={16} />
+          </button>
+        </div>
 
-          <div className="p-4">
-            <HistoryList
-              items={history}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
+        {/* 可滚动列表区域 */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 pb-32">
+          <div className="max-w-md mx-auto p-4 min-h-full">
+            {history.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                <ScanLine size={48} className="mb-4 opacity-20" />
+                <p className="text-sm">暂无扫描记录</p>
+              </div>
+            ) : (
+              <HistoryList
+                items={history}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+              />
+            )}
           </div>
         </div>
       </main>
 
-      {/* 底部控制栏 - 全新设计 */}
+      {/* 底部控制栏 - Fixed at bottom */}
       <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t border-gray-100 z-40 pb-safe">
         <div className="max-w-md mx-auto flex items-center justify-between px-4">
 
@@ -257,8 +253,8 @@ const App: React.FC = () => {
           <button
             onClick={() => setIsScanningActive(!isScanningActive)}
             className={`w-12 h-12 flex items-center justify-center rounded-full transition-all active:scale-90 ${isScanningActive
-                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                : 'bg-green-100 text-green-600'
+              ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-green-100 text-green-600'
               }`}
           >
             {isScanningActive ? <StopCircle size={24} /> : <PlayCircle size={24} />}
@@ -270,8 +266,8 @@ const App: React.FC = () => {
               onClick={triggerCapture}
               disabled={!isScanningActive || isProcessing}
               className={`w-20 h-20 rounded-full flex items-center justify-center shadow-xl transition-all active:scale-90 ${isProcessing || !isScanningActive
-                  ? 'bg-gray-200 cursor-not-allowed'
-                  : 'bg-blue-600 shadow-blue-300 ring-4 ring-white'
+                ? 'bg-gray-200 cursor-not-allowed'
+                : 'bg-blue-600 shadow-blue-300 ring-4 ring-white'
                 }`}
             >
               {isProcessing ? (
@@ -287,8 +283,8 @@ const App: React.FC = () => {
             disabled={history.length === 0}
             onClick={handleShare}
             className={`w-12 h-12 flex items-center justify-center rounded-full transition-all active:scale-90 ${history.length > 0
-                ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                : 'bg-gray-50 text-gray-300'
+              ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              : 'bg-gray-50 text-gray-300'
               }`}
           >
             <Share2 size={24} />
