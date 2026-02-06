@@ -2,13 +2,15 @@
 import OpenAI from "openai";
 import { GeminiResponse } from "../types";
 
+
 const SYSTEM_INSTRUCTION = `你是一个高速OCR助手，专门识别物流标签上的编码。
 规则：
 1. 忽略所有二维码、条形码图形、扫码文字。
-2. 仅提取：SN(序列号)、SKU、MAC。
-3. 如果图中找不到这些编码，所有字段返回 null。
-4. 严禁输出任何解释性文字。
-5. 必须返回有效的JSON格式，包含以下字段：sn, sku, mac, other_codes, confidence。`;
+2. 仅提取：SN(序列号)。
+3. 忽略 SKU、MAC、日期等其他信息。
+4. 如果图中找不到SN，返回 null。
+5. 严禁输出任何解释性文字。
+6. 必须返回有效的JSON格式，包含以下字段：sn, other_codes, confidence。`;
 
 export const recognizeLabel = async (base64Image: string): Promise<GeminiResponse> => {
   if (!base64Image || base64Image.length < 100) {
@@ -54,7 +56,7 @@ export const recognizeLabel = async (base64Image: string): Promise<GeminiRespons
             },
             {
               type: "text",
-              text: "提取编码，返回JSON格式：{\"sn\": \"序列号或null\", \"sku\": \"SKU或null\", \"mac\": \"MAC地址或null\", \"other_codes\": [{\"label\": \"标签名\", \"value\": \"值\"}], \"confidence\": 0.0-1.0之间的数字}。"
+              text: "提取编码，返回JSON格式：{\"sn\": \"序列号或null\", \"other_codes\": [{\"label\": \"标签名\", \"value\": \"值\"}], \"confidence\": 0.0-1.0之间的数字}。请忽略SKU和MAC。"
             }
           ]
         }
