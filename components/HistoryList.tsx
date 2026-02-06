@@ -20,7 +20,7 @@ const HistoryList: React.FC<HistoryListProps> = ({ items, onDelete, onEdit }) =>
   }
 
   return (
-    <div className="flex flex-col space-y-3 pb-24">
+    <div className="flex flex-col space-y-1.5 pb-24">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">已扫描结果 ({items.length})</h3>
         <span className="text-xs text-gray-400">最新在上</span>
@@ -28,7 +28,7 @@ const HistoryList: React.FC<HistoryListProps> = ({ items, onDelete, onEdit }) =>
       {items.map((item) => (
         <div
           key={item.id}
-          className={`relative group bg-white rounded-xl shadow-sm border-l-4 p-4 transition-all active:scale-[0.98] ${item.duplicate ? 'border-amber-500 bg-amber-50' : 'border-blue-500'
+          className={`relative group bg-white rounded-lg shadow-sm border-l-4 p-2 transition-all active:scale-[0.98] ${item.duplicate ? 'border-amber-500 bg-amber-50' : 'border-blue-500'
             }`}
         >
           {item.duplicate && (
@@ -38,14 +38,17 @@ const HistoryList: React.FC<HistoryListProps> = ({ items, onDelete, onEdit }) =>
             </div>
           )}
 
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-gray-400 font-mono">{item.time}</span>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => onEdit(item.id)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md">
-                <Edit3 size={14} />
+          <div className="flex justify-between items-center mb-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-400 font-mono">{item.time}</span>
+              <span className="text-[8px] px-1 py-0.5 bg-gray-100 rounded text-gray-400">{(item.confidence * 100).toFixed(0)}%</span>
+            </div>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={() => onEdit(item.id)} className="p-1 text-blue-600 hover:bg-blue-100 rounded">
+                <Edit3 size={12} />
               </button>
-              <button onClick={() => onDelete(item.id)} className="p-1.5 text-red-600 hover:bg-red-100 rounded-md">
-                <Trash2 size={14} />
+              <button onClick={() => onDelete(item.id)} className="p-1 text-red-600 hover:bg-red-100 rounded">
+                <Trash2 size={12} />
               </button>
             </div>
           </div>
@@ -71,9 +74,6 @@ const HistoryList: React.FC<HistoryListProps> = ({ items, onDelete, onEdit }) =>
             )}
           </div>
 
-          <div className="mt-3 flex items-center justify-end">
-            <span className="text-[10px] text-gray-400">置信度: {(item.confidence * 100).toFixed(0)}%</span>
-          </div>
         </div>
       ))}
     </div>

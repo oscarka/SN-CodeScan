@@ -246,34 +246,34 @@ const App: React.FC = () => {
       </main>
 
       {/* 底部控制栏 - Fixed at bottom */}
-      <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t border-gray-100 z-40 pb-safe">
-        <div className="max-w-md mx-auto flex items-center justify-between px-4">
+      <footer className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-xl border-t border-gray-100 z-40 pb-safe">
+        <div className="max-w-md mx-auto flex items-center justify-between px-6">
 
           {/* 左侧：停止/开始 */}
           <button
             onClick={() => setIsScanningActive(!isScanningActive)}
-            className={`w-12 h-12 flex items-center justify-center rounded-full transition-all active:scale-90 ${isScanningActive
-              ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              : 'bg-green-100 text-green-600'
+            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-90 ${isScanningActive
+                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-green-100 text-green-600'
               }`}
           >
-            {isScanningActive ? <StopCircle size={24} /> : <PlayCircle size={24} />}
+            {isScanningActive ? <StopCircle size={20} /> : <PlayCircle size={20} />}
           </button>
 
-          {/* 中间：巨大拍照按钮 */}
-          <div className="relative -top-8">
+          {/* 中间：巨大拍照按钮 - 缩小了一些 */}
+          <div className="relative -top-5">
             <button
               onClick={triggerCapture}
               disabled={!isScanningActive || isProcessing}
-              className={`w-20 h-20 rounded-full flex items-center justify-center shadow-xl transition-all active:scale-90 ${isProcessing || !isScanningActive
-                ? 'bg-gray-200 cursor-not-allowed'
-                : 'bg-blue-600 shadow-blue-300 ring-4 ring-white'
+              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90 ${isProcessing || !isScanningActive
+                  ? 'bg-gray-200 cursor-not-allowed'
+                  : 'bg-blue-600 shadow-blue-300 ring-4 ring-white'
                 }`}
             >
               {isProcessing ? (
-                <RefreshCcw className="text-white/50 animate-spin" size={32} />
+                <RefreshCcw className="text-white/50 animate-spin" size={24} />
               ) : (
-                <ScanLine className="text-white" size={32} />
+                <ScanLine className="text-white" size={24} />
               )}
             </button>
           </div>
@@ -282,12 +282,12 @@ const App: React.FC = () => {
           <button
             disabled={history.length === 0}
             onClick={handleShare}
-            className={`w-12 h-12 flex items-center justify-center rounded-full transition-all active:scale-90 ${history.length > 0
-              ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-              : 'bg-gray-50 text-gray-300'
+            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-90 ${history.length > 0
+                ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                : 'bg-gray-50 text-gray-300'
               }`}
           >
-            <Share2 size={24} />
+            <Share2 size={20} />
           </button>
         </div>
       </footer>
