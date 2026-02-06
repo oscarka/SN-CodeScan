@@ -6,12 +6,12 @@ steps:
       '--build-arg', 'ARK_API_KEY=cdd2170a-3b5e-40da-b802-a714b12379d6', # 使用您环境中的第一个 Key
       '--build-arg', 'ARK_API_BASE=https://ark.cn-beijing.volces.com/api/v3',
       '--build-arg', 'ARK_MODEL=Doubao-Seed-1.6-flash',
-      '-t', 'gcr.io/$PROJECT_ID/label-scanner:$COMMIT_SHA',
+      '-t', 'gcr.io/$PROJECT_ID/label-scanner:latest',
       '.'
     ]
   # Push the image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/label-scanner:$COMMIT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/label-scanner:latest']
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
@@ -20,11 +20,11 @@ steps:
       - 'deploy'
       - 'label-scanner'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/label-scanner:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/label-scanner:latest'
       - '--region'
       - 'us-central1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
 images:
-  - 'gcr.io/$PROJECT_ID/label-scanner:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/label-scanner:latest'
