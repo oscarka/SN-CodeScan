@@ -1,7 +1,10 @@
-
 // Fix: Added React to the import to resolve namespace issue for React.FC
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Loader2, Camera as CameraIcon, AlertCircle, ScanLine } from 'lucide-react';
+
+export interface ScannerRef {
+  triggerCapture: () => void;
+}
 
 interface ScannerProps {
   onCapture: (base64Image: string) => Promise<void>;
@@ -10,7 +13,7 @@ interface ScannerProps {
 }
 
 // Fix: Import React to resolve namespace issue
-const Scanner: React.FC<ScannerProps> = ({ onCapture, isProcessing, isActive }) => {
+const Scanner = forwardRef<ScannerRef, ScannerProps>(({ onCapture, isProcessing, isActive }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hiddenCanvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +91,10 @@ const Scanner: React.FC<ScannerProps> = ({ onCapture, isProcessing, isActive }) 
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    triggerCapture: handleManualCapture
+  }));
+
   useEffect(() => {
     if (isActive) {
       startCamera();
@@ -134,29 +141,15 @@ const Scanner: React.FC<ScannerProps> = ({ onCapture, isProcessing, isActive }) 
             </p>
           </div>
 
-          {/* Controls Layer */}
+          {/* Controls Layer - Only showing processing state now, trigger moved to parent */}
           <div className="absolute bottom-10 left-0 right-0 flex justify-center z-20 pointer-events-auto">
-            {isProcessing ? (
+            {isProcessing && (
               <div className="flex flex-col items-center gap-2 animate-pulse">
                 <div className="p-4 bg-white/10 backdrop-blur-md rounded-full">
                   <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
                 </div>
                 <span className="text-blue-400 text-sm font-bold">智能识别中...</span>
               </div>
-            ) : (
-              <button
-                onClick={handleManualCapture}
-                className="group relative flex flex-col items-center justify-center"
-              >
-                {/* 拍照按钮外圈 */}
-                <div className="w-20 h-20 rounded-full border-4 border-white/30 group-active:scale-95 transition-transform duration-100 flex items-center justify-center bg-white/10 backdrop-blur-sm">
-                  {/* 拍照按钮内芯 */}
-                  <div className="w-16 h-16 rounded-full bg-white group-active:bg-blue-100 shadow-lg flex items-center justify-center">
-                    <ScanLine className="text-blue-600 w-8 h-8" />
-                  </div>
-                </div>
-                <span className="mt-3 text-white font-bold text-sm tracking-wide drop-shadow-md">点击识别</span>
-              </button>
             )}
           </div>
         </>
@@ -194,6 +187,6 @@ const Scanner: React.FC<ScannerProps> = ({ onCapture, isProcessing, isActive }) 
       `}</style>
     </div>
   );
-};
+});
 
 export default Scanner;

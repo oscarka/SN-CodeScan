@@ -1,16 +1,19 @@
-
-import React, { useState, useCallback } from 'react';
-import Scanner from './components/Scanner';
+import React, { useState, useCallback, useRef } from 'react';
+import Scanner, { ScannerRef } from './components/Scanner';
 import HistoryList from './components/HistoryList';
 import { recognizeLabel } from './services/geminiService';
 import { ScanResult } from './types';
-import { Download, PlayCircle, StopCircle, RefreshCcw, Bell, Camera, XCircle } from 'lucide-react';
+import { Download, PlayCircle, StopCircle, RefreshCcw, Bell, Camera, XCircle, Share2, ScanLine, Edit3, Save, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [history, setHistory] = useState<ScanResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isScanningActive, setIsScanningActive] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' } | null>(null);
+  const [editingItem, setEditingItem] = useState<ScanResult | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const scannerRef = useRef<ScannerRef>(null);
 
   const showToast = (message: string, type: 'info' | 'warning' | 'error' = 'info') => {
     setToast({ message, type });
@@ -73,11 +76,30 @@ const App: React.FC = () => {
   };
 
   const handleEdit = (id: string) => {
-    showToast('编辑功能即将上线', 'info');
+    const item = history.find(i => i.id === id);
+    if (item) {
+      setEditingItem(item);
+      setEditValue(item.sn || '');
+    }
   };
 
-  const exportToCSV = () => {
+  const saveEdit = () => {
+    if (!editingItem) return;
+
+    setHistory(prev => prev.map(item => {
+      if (item.id === editingItem.id) {
+        return { ...item, sn: editValue };
+      }
+      return item;
+    }));
+
+    setEditingItem(null);
+    showToast('修改已保存');
+  };
+
+  const handleShare = async () => {
     if (history.length === 0) return;
+
     const headers = ['时间', 'SN', '其他编码', '置信度', '重复'];
     const rows = history.map(item => [
       item.time,
@@ -86,12 +108,38 @@ const App: React.FC = () => {
       `${(item.confidence * 100).toFixed(0)}%`,
       item.duplicate ? '是' : '否'
     ]);
-    const csv = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+
+    const fileName = `SCAN_${new Date().toISOString().slice(0, 10)}.csv`;
+    const file = new File(["\ufeff" + csvContent], fileName, { type: 'text/csv' });
+
+    // 优先尝试原生分享
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: '扫描结果导出',
+          text: `共 ${history.length} 条扫描记录`
+        });
+        showToast('分享成功');
+        return;
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('分享失败:', error);
+          // 失败后回退到下载逻辑
+        } else {
+          return; // 用户取消
+        }
+      }
+    }
+
+    // 回退到普通下载
+    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `BATCH_${new Date().getTime()}.csv`;
+    link.download = fileName;
     link.click();
+    showToast('文件已下载');
   };
 
   const resetBatch = () => {
@@ -99,6 +147,13 @@ const App: React.FC = () => {
       setHistory([]);
       setIsScanningActive(true);
       showToast('批次已重置');
+    }
+  };
+
+  // 触发拍照
+  const triggerCapture = () => {
+    if (scannerRef.current) {
+      scannerRef.current.triggerCapture();
     }
   };
 
@@ -115,6 +170,39 @@ const App: React.FC = () => {
               toast.type === 'warning' ? <Bell size={18} /> :
                 <PlayCircle size={18} />}
             <span className="text-xs font-bold tracking-wide">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑弹窗 */}
+      {editingItem && (
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">修改记录</h3>
+              <button onClick={() => setEditingItem(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">SN (序列号)</label>
+              <input
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-mono text-lg focus:outline-none focus:border-blue-500 transition-colors"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setEditingItem(null)} className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl">
+                取消
+              </button>
+              <button onClick={saveEdit} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform">
+                保存
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -142,9 +230,10 @@ const App: React.FC = () => {
       </header>
 
       {/* 主视图区域 */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-32">
         <div className="max-w-md mx-auto">
           <Scanner
+            ref={scannerRef}
             onCapture={handleCapture}
             isProcessing={isProcessing}
             isActive={isScanningActive}
@@ -160,29 +249,49 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* 底部控制栏 */}
-      <footer className="fixed bottom-0 left-0 right-0 p-5 bg-white/80 backdrop-blur-2xl border-t border-gray-100 z-40">
-        <div className="max-w-md mx-auto flex gap-4">
+      {/* 底部控制栏 - 全新设计 */}
+      <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t border-gray-100 z-40 pb-safe">
+        <div className="max-w-md mx-auto flex items-center justify-between px-4">
+
+          {/* 左侧：停止/开始 */}
           <button
             onClick={() => setIsScanningActive(!isScanningActive)}
-            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-3xl font-black text-sm transition-all active:scale-95 shadow-xl ${isScanningActive
-                ? 'bg-gray-900 text-white shadow-gray-200'
-                : 'bg-blue-600 text-white shadow-blue-200'
+            className={`w-12 h-12 flex items-center justify-center rounded-full transition-all active:scale-90 ${isScanningActive
+                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-green-100 text-green-600'
               }`}
           >
-            {isScanningActive ? <StopCircle size={18} /> : <PlayCircle size={18} />}
-            <span>{isScanningActive ? '停止扫描' : '恢复扫描'}</span>
+            {isScanningActive ? <StopCircle size={24} /> : <PlayCircle size={24} />}
           </button>
 
+          {/* 中间：巨大拍照按钮 */}
+          <div className="relative -top-8">
+            <button
+              onClick={triggerCapture}
+              disabled={!isScanningActive || isProcessing}
+              className={`w-20 h-20 rounded-full flex items-center justify-center shadow-xl transition-all active:scale-90 ${isProcessing || !isScanningActive
+                  ? 'bg-gray-200 cursor-not-allowed'
+                  : 'bg-blue-600 shadow-blue-300 ring-4 ring-white'
+                }`}
+            >
+              {isProcessing ? (
+                <RefreshCcw className="text-white/50 animate-spin" size={32} />
+              ) : (
+                <ScanLine className="text-white" size={32} />
+              )}
+            </button>
+          </div>
+
+          {/* 右侧：分享/导出 */}
           <button
             disabled={history.length === 0}
-            onClick={exportToCSV}
-            className={`w-16 flex items-center justify-center rounded-3xl transition-all active:scale-95 ${history.length > 0
-                ? 'bg-green-500 text-white shadow-xl shadow-green-100'
-                : 'bg-gray-100 text-gray-300'
+            onClick={handleShare}
+            className={`w-12 h-12 flex items-center justify-center rounded-full transition-all active:scale-90 ${history.length > 0
+                ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                : 'bg-gray-50 text-gray-300'
               }`}
           >
-            <Download size={22} />
+            <Share2 size={24} />
           </button>
         </div>
       </footer>
