@@ -20,14 +20,14 @@ const App: React.FC = () => {
 
   const handleCapture = useCallback(async (base64Image: string) => {
     if (isProcessing) return;
-    
+
     setIsProcessing(true);
     try {
       const result = await recognizeLabel(base64Image);
-      
+
       // 检查是否全为空
-      const hasContent = result.sn || result.sku || result.mac || result.other_codes.length > 0;
-      
+      const hasContent = result.sn || result.other_codes.length > 0;
+
       if (!hasContent) {
         showToast('图中未发现有效编码，请对准标签重试', 'info');
         return;
@@ -39,14 +39,6 @@ const App: React.FC = () => {
         let match = false;
         if (result.sn && item.sn === result.sn) {
           duplicate_fields.push('SN');
-          match = true;
-        }
-        if (result.sku && item.sku === result.sku) {
-          duplicate_fields.push('SKU');
-          match = true;
-        }
-        if (result.mac && item.mac === result.mac) {
-          duplicate_fields.push('MAC');
           match = true;
         }
         return match;
@@ -86,14 +78,13 @@ const App: React.FC = () => {
 
   const exportToCSV = () => {
     if (history.length === 0) return;
-    const headers = ['时间', 'SN', 'SKU', 'MAC', '是否重复', '重复项'];
+    const headers = ['时间', 'SN', '其他编码', '置信度', '重复'];
     const rows = history.map(item => [
       item.time,
       `'${item.sn || ''}`,
-      `'${item.sku || ''}`,
-      `'${item.mac || ''}`,
-      item.duplicate ? '是' : '否',
-      item.duplicate_fields.join(';')
+      item.other_codes.map(c => `${c.label}:${c.value}`).join('; '),
+      `${(item.confidence * 100).toFixed(0)}%`,
+      item.duplicate ? '是' : '否'
     ]);
     const csv = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -116,14 +107,13 @@ const App: React.FC = () => {
       {/* Toast 提示层 */}
       {toast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-[85%] max-w-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-xl ${
-            toast.type === 'error' ? 'bg-red-500 text-white border-red-400' : 
-            toast.type === 'warning' ? 'bg-amber-500 text-white border-amber-400' : 
-            'bg-blue-600/90 text-white border-blue-400/30'
-          }`}>
-            {toast.type === 'error' ? <XCircle size={18} /> : 
-             toast.type === 'warning' ? <Bell size={18} /> : 
-             <PlayCircle size={18} />}
+          <div className={`px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-xl ${toast.type === 'error' ? 'bg-red-500 text-white border-red-400' :
+              toast.type === 'warning' ? 'bg-amber-500 text-white border-amber-400' :
+                'bg-blue-600/90 text-white border-blue-400/30'
+            }`}>
+            {toast.type === 'error' ? <XCircle size={18} /> :
+              toast.type === 'warning' ? <Bell size={18} /> :
+                <PlayCircle size={18} />}
             <span className="text-xs font-bold tracking-wide">{toast.message}</span>
           </div>
         </div>
@@ -133,17 +123,17 @@ const App: React.FC = () => {
       <header className="bg-white/70 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-             <Camera className="text-white" size={20} />
+            <Camera className="text-white" size={20} />
           </div>
           <div>
             <h1 className="text-base font-black text-gray-900 leading-none mb-1">标签智能扫描</h1>
             <div className="flex items-center gap-1.5">
-               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Doubao Flash Ready</p>
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Doubao Flash Ready</p>
             </div>
           </div>
         </div>
-        <button 
+        <button
           onClick={resetBatch}
           className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-500 active:rotate-180 transition-all duration-700"
         >
@@ -154,15 +144,15 @@ const App: React.FC = () => {
       {/* 主视图区域 */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto">
-          <Scanner 
-            onCapture={handleCapture} 
-            isProcessing={isProcessing} 
-            isActive={isScanningActive} 
+          <Scanner
+            onCapture={handleCapture}
+            isProcessing={isProcessing}
+            isActive={isScanningActive}
           />
-          
+
           <div className="p-4">
-            <HistoryList 
-              items={history} 
+            <HistoryList
+              items={history}
               onDelete={handleDelete}
               onEdit={handleEdit}
             />
@@ -173,26 +163,24 @@ const App: React.FC = () => {
       {/* 底部控制栏 */}
       <footer className="fixed bottom-0 left-0 right-0 p-5 bg-white/80 backdrop-blur-2xl border-t border-gray-100 z-40">
         <div className="max-w-md mx-auto flex gap-4">
-          <button 
+          <button
             onClick={() => setIsScanningActive(!isScanningActive)}
-            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-3xl font-black text-sm transition-all active:scale-95 shadow-xl ${
-              isScanningActive 
-              ? 'bg-gray-900 text-white shadow-gray-200' 
-              : 'bg-blue-600 text-white shadow-blue-200'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-3xl font-black text-sm transition-all active:scale-95 shadow-xl ${isScanningActive
+                ? 'bg-gray-900 text-white shadow-gray-200'
+                : 'bg-blue-600 text-white shadow-blue-200'
+              }`}
           >
             {isScanningActive ? <StopCircle size={18} /> : <PlayCircle size={18} />}
             <span>{isScanningActive ? '停止扫描' : '恢复扫描'}</span>
           </button>
-          
-          <button 
+
+          <button
             disabled={history.length === 0}
             onClick={exportToCSV}
-            className={`w-16 flex items-center justify-center rounded-3xl transition-all active:scale-95 ${
-              history.length > 0 
-              ? 'bg-green-500 text-white shadow-xl shadow-green-100' 
-              : 'bg-gray-100 text-gray-300'
-            }`}
+            className={`w-16 flex items-center justify-center rounded-3xl transition-all active:scale-95 ${history.length > 0
+                ? 'bg-green-500 text-white shadow-xl shadow-green-100'
+                : 'bg-gray-100 text-gray-300'
+              }`}
           >
             <Download size={22} />
           </button>
