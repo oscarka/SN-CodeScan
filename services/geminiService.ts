@@ -28,6 +28,7 @@ export const recognizeLabel = async (base64Image: string): Promise<GeminiRespons
   const client = new OpenAI({
     baseURL: apiBase,
     apiKey: apiKey,
+    dangerouslyAllowBrowser: true,
   });
 
   try {
