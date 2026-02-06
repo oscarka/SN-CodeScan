@@ -100,7 +100,7 @@ const Scanner: React.FC<ScannerProps> = ({ onCapture, isProcessing, isActive }) 
   }, [isActive, startCamera, stopCamera]);
 
   return (
-    <div className="relative w-full aspect-[3/4] bg-black overflow-hidden rounded-b-3xl shadow-2xl border-b-4 border-blue-500">
+    <div className="relative w-full aspect-[4/3] bg-black overflow-hidden rounded-b-3xl shadow-2xl border-b-4 border-blue-500">
       {isActive ? (
         <>
           {/* Video Preview */}
