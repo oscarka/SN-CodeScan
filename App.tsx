@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { validateSN } from './utils/snValidation';
+
 import Scanner, { ScannerRef } from './components/Scanner';
 import HistoryList from './components/HistoryList';
 import { recognizeLabel } from './services/geminiService';
@@ -47,16 +49,23 @@ const App: React.FC = () => {
         return match;
       });
 
+      // 格式校验
+      const validation = validateSN(result.sn);
+
       const newResult: ScanResult = {
         id: crypto.randomUUID(),
         time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
         ...result,
         duplicate: isDuplicate,
         duplicate_fields: [...new Set(duplicate_fields)],
+        warnings: validation.messages,
       };
 
       if (isDuplicate) {
         showToast(`发现重复: ${duplicate_fields.join('/')} 已在记录中`, 'warning');
+      } else if (!validation.isValid) {
+        // 如果校验不通过，显示第一个警告
+        showToast(`格式偏离: ${validation.messages[0]}`, 'warning');
       } else {
         showToast('识别成功', 'info');
       }
@@ -100,13 +109,14 @@ const App: React.FC = () => {
   const handleShare = async () => {
     if (history.length === 0) return;
 
-    const headers = ['时间', 'SN', '其他编码', '置信度', '重复'];
+    const headers = ['时间', 'SN', '其他编码', '置信度', '重复', '校验信息'];
     const rows = history.map(item => [
       item.time,
       `'${item.sn || ''}`,
       item.other_codes.map(c => `${c.label}:${c.value}`).join('; '),
       `${(item.confidence * 100).toFixed(0)}%`,
-      item.duplicate ? '是' : '否'
+      item.duplicate ? '是' : '否',
+      item.warnings ? item.warnings.join('; ') : ''
     ]);
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
 
@@ -253,8 +263,8 @@ const App: React.FC = () => {
           <button
             onClick={() => setIsScanningActive(!isScanningActive)}
             className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-90 ${isScanningActive
-                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                : 'bg-green-100 text-green-600'
+              ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-green-100 text-green-600'
               }`}
           >
             {isScanningActive ? <StopCircle size={20} /> : <PlayCircle size={20} />}
@@ -266,8 +276,8 @@ const App: React.FC = () => {
               onClick={triggerCapture}
               disabled={!isScanningActive || isProcessing}
               className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90 ${isProcessing || !isScanningActive
-                  ? 'bg-gray-200 cursor-not-allowed'
-                  : 'bg-blue-600 shadow-blue-300 ring-4 ring-white'
+                ? 'bg-gray-200 cursor-not-allowed'
+                : 'bg-blue-600 shadow-blue-300 ring-4 ring-white'
                 }`}
             >
               {isProcessing ? (
@@ -283,8 +293,8 @@ const App: React.FC = () => {
             disabled={history.length === 0}
             onClick={handleShare}
             className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-90 ${history.length > 0
-                ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                : 'bg-gray-50 text-gray-300'
+              ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              : 'bg-gray-50 text-gray-300'
               }`}
           >
             <Share2 size={20} />

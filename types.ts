@@ -9,6 +9,7 @@ export interface ScanResult {
   confidence: number;
   duplicate: boolean;
   duplicate_fields: string[];
+  warnings?: string[];
 }
 
 export interface GeminiResponse {

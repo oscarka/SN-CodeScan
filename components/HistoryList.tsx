@@ -62,6 +62,17 @@ const HistoryList: React.FC<HistoryListProps> = ({ items, onDelete, onEdit }) =>
                 </span>
               </div>
             )}
+            {/* 格式警告 */}
+            {item.warnings && item.warnings.length > 0 && (
+              <div className="flex flex-col gap-1 pl-10">
+                {item.warnings.map((msg, idx) => (
+                  <span key={idx} className="text-[10px] text-red-500 font-medium flex items-center gap-1">
+                    <AlertCircle size={8} />
+                    {msg}
+                  </span>
+                ))}
+              </div>
+            )}
             {item.other_codes.length > 0 && (
               <div className="pt-2 border-t border-gray-100 mt-1">
                 {item.other_codes.map((code, idx) => (
