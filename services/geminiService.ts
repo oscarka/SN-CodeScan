@@ -56,7 +56,7 @@ export const recognizeLabel = async (base64Image: string): Promise<GeminiRespons
             },
             {
               type: "text",
-              text: "提取编码，返回JSON格式：{\"sn\": \"序列号或null\", \"other_codes\": [{\"label\": \"标签名\", \"value\": \"值\"}], \"confidence\": 0.0-1.0之间的数字}。请忽略SKU和MAC。"
+              text: "仅提取SN（序列号）。严禁提取SKU、MAC、P/N等其他编码。返回JSON：{\"sn\": \"序列号或null\", \"other_codes\": [], \"confidence\": 0.9}。"
             }
           ]
         }
@@ -85,11 +85,17 @@ export const recognizeLabel = async (base64Image: string): Promise<GeminiRespons
     }
 
     // 确保返回的数据结构完整
+    // 强制过滤 SKU 和 MAC，即使 AI 返回了它们
+    const filteredOtherCodes = (result.other_codes ?? []).filter(code => {
+      const label = code.label.toUpperCase();
+      return !label.includes('SKU') && !label.includes('MAC') && !label.includes('P/N') && !label.includes('MODEL');
+    });
+
     return {
       sn: result.sn ?? null,
-      sku: result.sku ?? null,
-      mac: result.mac ?? null,
-      other_codes: result.other_codes ?? [],
+      sku: null, // Force null
+      mac: null, // Force null
+      other_codes: filteredOtherCodes,
       confidence: result.confidence ?? 0.8
     };
   } catch (error: any) {
